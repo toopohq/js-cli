@@ -73,18 +73,17 @@ async function add(args: string[], served = registry(), files: Files = ours) {
   return { ...run, read, before, after: tree() }
 }
 
-// The import is from beside the folder: `./toopo/` for `src/toopo` and for `toopo` alike.
 const printed = (file: string, name: string, specifier: string) =>
-  `${join(file)}\nimport { ${name} } from './toopo/${specifier}'\n`
+  `${join(file)}\nimport { ${name} } from './${specifier}'\n`
 
 test.each([
-  ['ts', 'ts', 'src/toopo', 'js', ts],
-  ['ts', 'mts', 'toopo', 'mjs', ts],
-  ['js', 'js', 'toopo', 'js', js],
-  ['js', 'mjs', 'toopo', 'mjs', js],
+  ['ts', 'ts', 'src/toopo', 'toopo/string/truncate.js', ts],
+  ['ts', 'mts', 'lib/fns', 'fns/string/truncate.mjs', ts],
+  ['js', 'js', 'toopo', 'toopo/string/truncate.js', js],
+  ['js', 'mjs', 'toopo', 'toopo/string/truncate.mjs', js],
 ])(
-  'the %s emission lands as .%s in %s, is locked, and imports as .%s',
-  async (emission, extension, folder, imported, text) => {
+  'the %s emission lands as .%s in %s, is locked, and imports ./%s',
+  async (emission, extension, folder, specifier, text) => {
     const files = { 'toopo.json': config(emission, folder, extension) }
     const run = await add(['string/truncate'], registry(), files)
     expect(run.stderr).toBe('')
@@ -94,7 +93,7 @@ test.each([
     expect(run.read('toopo.lock')).toBe(
       lock({ [t]: { version: '1.0.0', sha256: hash('sha256', text) } }),
     )
-    expect(run.stdout).toBe(printed(file, 'truncate', `string/truncate.${imported}`))
+    expect(run.stdout).toBe(printed(file, 'truncate', specifier))
   },
 )
 
@@ -103,7 +102,7 @@ test('a kebab-case name imports in camelCase', async () => {
   const run = await add(['string/snake-case'], registry({ ...record, address }, `/${address}.json`))
   expect(run.status).toBe(0)
   const file = 'toopo/string/snake-case.ts'
-  expect(run.stdout).toBe(printed(file, 'snakeCase', 'string/snake-case.js'))
+  expect(run.stdout).toBe(printed(file, 'snakeCase', 'toopo/string/snake-case.js'))
 })
 
 test('an existing lock keeps its entries', async () => {
@@ -142,6 +141,7 @@ test.each<[string, string[], Files, string, Files?]>([
 ])('%s fails and writes nothing', async (_, args, served, stderr, files = ours) => {
   const run = await add(args, served, files)
   expect(run.stderr).toBe(`${stderr}\n`)
+  expect(run.stdout).toBe('')
   expect(run.status).toBe(1)
   expect(run.after).toEqual(run.before)
   expect(run.read(target)).toBe(files[target])
