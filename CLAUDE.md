@@ -10,8 +10,8 @@ JavaScript catalogue, `toopohq/js`, into their project.
 - `src/init.ts` — `toopo init`: detects TypeScript or JavaScript, asks, writes `toopo.json`.
 - `src/add.ts` — `toopo add`: fetches a record, verifies the digest, writes the file and
   `toopo.lock`.
-- `src/*.test.ts` — run `main.ts` in a Node process, as a user's shell does; `add` against a local
-  registry, `TOOPO_REGISTRY`.
+- `src/*.test.ts` — run `main.ts` in a child Node process; `add` against a local registry,
+  `TOOPO_REGISTRY`.
 - `.claude/hook.mjs` — fast feedback for Claude Code, not enforcement: it sees Write and Edit, and
   a shell bypasses it. Refuses a root entry outside its allowlist, a runtime dependency field in
   `package.json` — CI refuses that one too — and a `CLAUDE.md` past 150 lines; formats and lints
@@ -21,16 +21,16 @@ JavaScript catalogue, `toopohq/js`, into their project.
 ## Commands
 
 - `pnpm install`
-- `pnpm check` — Biome (a warning fails), `tsc`, Vitest, knip. CI runs the same, plus the build,
-  whose imports must be relative or `node:`, and the pull request checks, which run even when
-  `pnpm check` fails.
+- `pnpm check` — Biome (a warning fails), `tsc`, Vitest, knip. CI runs the same, plus the packed
+  client, unpacked where no devDependency resolves and run, and the pull request checks, which
+  run even when `pnpm check` fails.
 
 ## Non-negotiables
 
 - Zero runtime dependencies: `package.json` has no `dependencies`, `optionalDependencies` or
   `peerDependencies` field. The hook and CI refuse each.
-- The client runs on Node 22 and later: `@types/node` is pinned to 22, so `tsc` refuses an API
-  Node 22 does not have. The toolchain and CI run Node 24.
+- The client runs on Node 22 and later: `@types/node` is pinned to 22 and `lib` to ES2024, so
+  `tsc` refuses an API Node 22 does not have. The toolchain and CI run Node 24.
 - A source file is at most 150 lines, a function at most 40. Biome enforces both.
 - A pull request title is a Conventional Commit, every commit is signed off (DCO), and no title,
   body or commit carries assistant attribution. CI refuses otherwise.

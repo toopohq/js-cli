@@ -33,7 +33,7 @@ export async function add(args: string[]): Promise<void> {
   const file = join(folder, `${name}.${emission}`)
   if (existsSync(file)) throw new Error(`${file} already exists, and it is yours`)
   const address = `js/${name}`
-  const record: ServedRecord = await (await get(`${address}.json`)).json()
+  const record: ServedRecord = JSON.parse(await (await get(`${address}.json`)).text())
   // The registry serves only addresses `spec` accepts: equal to the one asked, no `..` reaches `file`.
   if (record.address !== address)
     throw new Error(`${address}: the registry served ${record.address}`)
