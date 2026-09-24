@@ -73,17 +73,16 @@ async function add(args: string[], served = registry(), files: Files = ours) {
   return { ...run, read, before, after: tree() }
 }
 
-const printed = (file: string, name: string, specifier: string) =>
-  `${join(file)}\nimport { ${name} } from './${specifier}'\n`
+const printed = (file: string, line: string) => `${join(file)}\n${line}\n`
 
 test.each([
-  ['ts', 'ts', 'src/toopo', 'toopo/string/truncate.js', ts],
-  ['ts', 'mts', 'lib/fns', 'fns/string/truncate.mjs', ts],
-  ['js', 'js', 'toopo', 'toopo/string/truncate.js', js],
-  ['js', 'mjs', 'toopo', 'toopo/string/truncate.mjs', js],
+  ['ts', 'ts', 'src/toopo', "import { truncate } from './toopo/string/truncate.js'", ts],
+  ['ts', 'mts', 'lib/fns', "import { truncate } from './fns/string/truncate.mjs'", ts],
+  ['js', 'js', 'toopo', "import { truncate } from './toopo/string/truncate.js'", js],
+  ['js', 'mjs', 'toopo', "const { truncate } = require('./toopo/string/truncate.mjs')", js],
 ])(
-  'the %s emission lands as .%s in %s, is locked, and imports ./%s',
-  async (emission, extension, folder, specifier, text) => {
+  'the %s emission lands as .%s in %s, is locked, and prints %s',
+  async (emission, extension, folder, line, text) => {
     const files = { 'toopo.json': config(emission, folder, extension) }
     const run = await add(['string/truncate'], registry(), files)
     expect(run.stderr).toBe('')
@@ -93,7 +92,7 @@ test.each([
     expect(run.read('toopo.lock')).toBe(
       lock({ [t]: { version: '1.0.0', sha256: hash('sha256', text) } }),
     )
-    expect(run.stdout).toBe(printed(file, 'truncate', specifier))
+    expect(run.stdout).toBe(printed(file, line))
   },
 )
 
@@ -102,7 +101,7 @@ test('a kebab-case name imports in camelCase', async () => {
   const run = await add(['string/snake-case'], registry({ ...record, address }, `/${address}.json`))
   expect(run.status).toBe(0)
   const file = 'toopo/string/snake-case.ts'
-  expect(run.stdout).toBe(printed(file, 'snakeCase', 'toopo/string/snake-case.js'))
+  expect(run.stdout).toBe(printed(file, "import { snakeCase } from './toopo/string/snake-case.js'"))
 })
 
 test('an existing lock keeps its entries', async () => {
