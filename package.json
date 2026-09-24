@@ -16,6 +16,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.14",
+    "@toopo/spec": "github:toopohq/spec",
     "@types/node": "22.20.4",
     "knip": "6.37.0",
     "typescript": "7.0.2",

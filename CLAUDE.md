@@ -7,7 +7,10 @@ JavaScript catalogue, `toopohq/js`, into their project.
 
 - `src/main.ts` — the `bin`. With no command it knows, it prints the usage to stderr and exits 1.
 - `src/init.ts` — `toopo init`: detects TypeScript or JavaScript, asks, writes `toopo.json`.
-- `src/*.test.ts` — run `main.ts` in a Node process, as a user's shell does.
+- `src/add.ts` — `toopo add`: fetches a record, verifies the digest, writes the file and
+  `toopo.lock`.
+- `src/*.test.ts` — run `main.ts` in a Node process, as a user's shell does; `add` against a local
+  registry, `TOOPO_REGISTRY`.
 - `.claude/hook.mjs` — fast feedback for Claude Code, not enforcement: it sees Write and Edit, and
   a shell bypasses it. Refuses a root entry outside its allowlist, a runtime dependency field in
   `package.json` — CI refuses that one too — and a `CLAUDE.md` past 150 lines; formats and lints

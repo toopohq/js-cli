@@ -1,0 +1,123 @@
+import { execFile } from 'node:child_process'
+import { hash } from 'node:crypto'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { createServer } from 'node:http'
+import type { AddressInfo } from 'node:net'
+import { tmpdir } from 'node:os'
+import { dirname, join } from 'node:path'
+import { promisify } from 'node:util'
+import type { ServedRecord } from '@toopo/spec/record'
+import { expect, onTestFinished, test } from 'vitest'
+
+type Files = Record<string, string>
+
+const ts = 'export function truncate(text: string): string {}\n'
+const js = 'export function truncate(text) {}\n'
+const t = 'js/string/truncate'
+const record: ServedRecord = {
+  address: t,
+  version: '1.0.0',
+  summary: 'Shortens a string to at most a given length.',
+  emissions: {
+    ts: { path: `${t}.ts`, sha256: hash('sha256', ts) },
+    js: { path: `${t}.js`, sha256: hash('sha256', js) },
+  },
+  dependencies: [],
+}
+
+function registry(served: object = record, at = `/${t}.json`): Files {
+  return { [at]: JSON.stringify(served), [`/${t}.ts`]: ts, [`/${t}.js`]: js }
+}
+
+const config = (emission: string, folder = 'toopo') => JSON.stringify({ emission, folder })
+const lock = (entries: object) => `${JSON.stringify(entries, null, 2)}\n`
+const ours = { 'toopo.json': config('ts') }
+
+// Runs `toopo add` in a fresh project holding `files`, against a local registry serving `served`.
+async function add(args: string[], served = registry(), files: Files = ours) {
+  const server = createServer((request, response) => {
+    const body = served[request.url ?? '']
+    response.writeHead(body === undefined ? 404 : 200).end(body)
+  })
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+  onTestFinished(() => void server.close())
+  const cwd = mkdtempSync(join(tmpdir(), 'toopo-'))
+  onTestFinished(() => rmSync(cwd, { recursive: true }))
+  for (const [file, text] of Object.entries(files)) {
+    mkdirSync(dirname(join(cwd, file)), { recursive: true })
+    writeFileSync(join(cwd, file), text)
+  }
+  const { port } = server.address() as AddressInfo
+  const env = { ...process.env, TOOPO_REGISTRY: `http://127.0.0.1:${port}` }
+  const main = join(import.meta.dirname, 'main.ts')
+  const run = await promisify(execFile)(process.execPath, [main, 'add', ...args], {
+    cwd,
+    env,
+  }).then(
+    () => ({ status: 0, stderr: '' }),
+    (error) => ({ status: error.code, stderr: error.stderr }),
+  )
+  const read = (file: string) =>
+    existsSync(join(cwd, file)) ? readFileSync(join(cwd, file), 'utf8') : undefined
+  return { ...run, read }
+}
+
+test.each([
+  ['ts', 'src/toopo', ts],
+  ['js', 'toopo', js],
+])('the %s emission lands in %s, and is locked', async (emission, folder, text) => {
+  const run = await add(['string/truncate'], registry(), { 'toopo.json': config(emission, folder) })
+  expect(run.stderr).toBe('')
+  expect(run.status).toBe(0)
+  expect(run.read(`${folder}/string/truncate.${emission}`)).toBe(text)
+  expect(run.read('toopo.lock')).toBe(
+    lock({ [t]: { version: '1.0.0', sha256: hash('sha256', text) } }),
+  )
+})
+
+test('an existing lock keeps its entries', async () => {
+  const pad = { 'js/string/pad': { version: '2.0.0', sha256: '0' } }
+  const run = await add(['string/truncate'], registry(), { ...ours, 'toopo.lock': lock(pad) })
+  expect(run.status).toBe(0)
+  const truncate = { version: '1.0.0', sha256: record.emissions.ts.sha256 }
+  expect(run.read('toopo.lock')).toBe(lock({ ...pad, [t]: truncate }))
+})
+
+const usage = 'usage: toopo add <domain>/<name>'
+const truncate = ['string/truncate']
+const target = join('toopo', 'string', 'truncate.ts')
+const variant = (change: object) => registry({ ...record, ...change })
+const pad = variant({ address: 'js/string/pad' })
+const dependent = variant({ dependencies: ['js/string/pad'] })
+const tsOnly = variant({ emissions: { ts: record.emissions.ts } })
+const tampered = variant({ emissions: { ts: { ...record.emissions.ts, sha256: '0' } } })
+// Fetch resolves `js/../y.json` to `/y.json`, where this registry serves another record.
+const escaped = registry(record, '/y.json')
+
+test.each<[string, string[], Files, string, Files?]>([
+  ['no address', [], registry(), usage],
+  ['two addresses', [...truncate, 'string/pad'], registry(), usage],
+  ['no toopo.json', truncate, registry(), 'no toopo.json: run toopo init', {}],
+  ['an unknown address', ['string/nope'], registry(), 'js/string/nope.json: 404 Not Found'],
+  ['a .. segment', ['../y'], escaped, `js/../y: the registry served ${t}`],
+  ['another address served', truncate, pad, `${t}: the registry served js/string/pad`],
+  ['a dependency', truncate, dependent, `${t}: dependencies are not supported yet`],
+  ['no such emission', truncate, tsOnly, `${t}: no .js emission`, { 'toopo.json': config('js') }],
+  ['a digest that differs', truncate, tampered, `${t}.ts: sha256 mismatch`],
+  [
+    'an existing file',
+    truncate,
+    registry(),
+    `${target} already exists, and it is yours`,
+    {
+      ...ours,
+      [target]: 'mine\n',
+    },
+  ],
+])('%s fails and writes nothing', async (_, args, served, stderr, files = ours) => {
+  const run = await add(args, served, files)
+  expect(run.stderr).toBe(`${stderr}\n`)
+  expect(run.status).toBe(1)
+  expect(run.read(target)).toBe(files[target])
+  expect(run.read('toopo.lock')).toBeUndefined()
+})

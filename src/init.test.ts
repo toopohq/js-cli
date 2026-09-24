@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { expect, onTestFinished, test } from 'vitest'
@@ -7,7 +7,10 @@ import { expect, onTestFinished, test } from 'vitest'
 function init(files: string[], args: string[], input: string) {
   const cwd = mkdtempSync(join(tmpdir(), 'toopo-'))
   onTestFinished(() => rmSync(cwd, { recursive: true }))
-  for (const file of files) writeFileSync(join(cwd, file), '{}\n')
+  for (const file of files) {
+    if (file.endsWith('/')) mkdirSync(join(cwd, file))
+    else writeFileSync(join(cwd, file), '{}\n')
+  }
   const main = join(import.meta.dirname, 'main.ts')
   const run = spawnSync(process.execPath, [main, 'init', ...args], { cwd, input, encoding: 'utf8' })
   const config = join(cwd, 'toopo.json')
@@ -15,16 +18,17 @@ function init(files: string[], args: string[], input: string) {
 }
 
 test.each([
-  ['a tsconfig.json, the detection accepted', ['tsconfig.json'], [], '\n', 'ts'],
-  ['no tsconfig.json, the detection accepted', [], [], '\n', 'js'],
-  ['an answer against the detection', ['tsconfig.json'], [], 'js\n', 'js'],
-  ['an answer without a newline', [], [], 'ts', 'ts'],
-  ['--ts, unasked', [], ['--ts'], '', 'ts'],
-  ['--js, unasked', ['tsconfig.json'], ['--js'], '', 'js'],
-])('%s writes the emission', (_, files, args, input, emission) => {
+  ['a tsconfig.json, the detection accepted', ['tsconfig.json'], [], '\n', 'ts', 'toopo'],
+  ['no tsconfig.json, the detection accepted', [], [], '\n', 'js', 'toopo'],
+  ['an answer against the detection', ['tsconfig.json'], [], 'js\n', 'js', 'toopo'],
+  ['an answer without a newline', [], [], 'ts', 'ts', 'toopo'],
+  ['--ts, unasked', [], ['--ts'], '', 'ts', 'toopo'],
+  ['--js, unasked', ['tsconfig.json'], ['--js'], '', 'js', 'toopo'],
+  ['a src/ folder', ['tsconfig.json', 'src/'], ['--ts'], '', 'ts', 'src/toopo'],
+])('%s writes the emission and the folder', (_, files, args, input, emission, folder) => {
   const run = init(files, args, input)
   expect(run.status).toBe(0)
-  expect(run.config).toBe(`{\n  "emission": "${emission}"\n}\n`)
+  expect(run.config).toBe(`{\n  "emission": "${emission}",\n  "folder": "${folder}"\n}\n`)
 })
 
 const prompt = 'Emission (ts/js) [js]: '

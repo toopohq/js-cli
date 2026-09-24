@@ -24,5 +24,8 @@ export async function init(args: string[]): Promise<void> {
   const detected = existsSync('tsconfig.json') ? 'ts' : 'js'
   const emission = values.ts ? 'ts' : values.js ? 'js' : await ask(detected)
   if (emission !== 'ts' && emission !== 'js') throw new Error(`expected ts or js, got ${emission}`)
-  await writeFile('toopo.json', `${JSON.stringify({ emission }, null, 2)}\n`, { flag: 'wx' })
+  const folder = existsSync('src') ? 'src/toopo' : 'toopo'
+  await writeFile('toopo.json', `${JSON.stringify({ emission, folder }, null, 2)}\n`, {
+    flag: 'wx',
+  })
 }
