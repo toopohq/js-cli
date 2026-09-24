@@ -13,7 +13,7 @@ async function get(path: string): Promise<Response> {
   return response
 }
 
-function read(file: string) {
+export function read(file: string) {
   const text = readFileSync(file, 'utf8')
   try {
     return JSON.parse(text)
@@ -28,9 +28,10 @@ export async function add(args: string[]): Promise<void> {
   if (name === undefined || positionals.length > 1)
     throw new Error('usage: toopo add <domain>/<name>')
   if (!existsSync('toopo.json')) throw new Error('no toopo.json: run toopo init')
-  const { emission, folder }: { emission: 'ts' | 'js'; folder: string } = read('toopo.json')
+  const config: { emission: 'ts' | 'js'; extension: string; folder: string } = read('toopo.json')
+  const { emission, extension, folder } = config
   const lock = existsSync('toopo.lock') ? read('toopo.lock') : {}
-  const file = join(folder, `${name}.${emission}`)
+  const file = join(folder, `${name}.${extension}`)
   if (existsSync(file)) throw new Error(`${file} already exists, and it is yours`)
   const address = `js/${name}`
   const record: ServedRecord = JSON.parse(await (await get(`${address}.json`)).text())

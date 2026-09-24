@@ -37,7 +37,8 @@ function registry(served: object = record, at = `/${t}.json`): Files {
   return { [at]: JSON.stringify(served), [`/${t}.ts`]: ts, [`/${t}.js`]: js }
 }
 
-const config = (emission: string, folder = 'toopo') => JSON.stringify({ emission, folder })
+const config = (emission: string, folder = 'toopo', extension = emission) =>
+  JSON.stringify({ emission, extension, folder })
 const lock = (entries: object) => `${JSON.stringify(entries, null, 2)}\n`
 const ours = { 'toopo.json': config('ts') }
 
@@ -73,13 +74,15 @@ async function add(args: string[], served = registry(), files: Files = ours) {
 }
 
 test.each([
-  ['ts', 'src/toopo', ts],
-  ['js', 'toopo', js],
-])('the %s emission lands in %s, and is locked', async (emission, folder, text) => {
-  const run = await add(['string/truncate'], registry(), { 'toopo.json': config(emission, folder) })
+  ['ts', 'ts', 'src/toopo', ts],
+  ['js', 'js', 'toopo', js],
+  ['js', 'mjs', 'toopo', js],
+])('the %s emission lands as .%s, and is locked', async (emission, extension, folder, text) => {
+  const files = { 'toopo.json': config(emission, folder, extension) }
+  const run = await add(['string/truncate'], registry(), files)
   expect(run.stderr).toBe('')
   expect(run.status).toBe(0)
-  expect(run.read(`${folder}/string/truncate.${emission}`)).toBe(text)
+  expect(run.read(`${folder}/string/truncate.${extension}`)).toBe(text)
   expect(run.read('toopo.lock')).toBe(
     lock({ [t]: { version: '1.0.0', sha256: hash('sha256', text) } }),
   )
