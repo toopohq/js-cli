@@ -65,27 +65,44 @@ async function add(args: string[], served = registry(), files: Files = ours) {
     cwd,
     env,
   }).then(
-    () => ({ status: 0, stderr: '' }),
-    (error) => ({ status: error.code, stderr: error.stderr }),
+    ({ stdout }) => ({ status: 0, stdout, stderr: '' }),
+    (error) => ({ status: error.code, stdout: error.stdout, stderr: error.stderr }),
   )
   const read = (file: string) =>
     existsSync(join(cwd, file)) ? readFileSync(join(cwd, file), 'utf8') : undefined
   return { ...run, read, before, after: tree() }
 }
 
+const printed = (file: string, name: string, specifier: string) =>
+  `${join(file)}\nimport { ${name} } from './${specifier}'\n`
+
 test.each([
-  ['ts', 'ts', 'src/toopo', ts],
-  ['js', 'js', 'toopo', js],
-  ['js', 'mjs', 'toopo', js],
-])('the %s emission lands as .%s, and is locked', async (emission, extension, folder, text) => {
-  const files = { 'toopo.json': config(emission, folder, extension) }
-  const run = await add(['string/truncate'], registry(), files)
-  expect(run.stderr).toBe('')
+  ['ts', 'ts', 'src/toopo', 'toopo/string/truncate.js', ts],
+  ['ts', 'mts', 'lib/fns', 'fns/string/truncate.mjs', ts],
+  ['js', 'js', 'toopo', 'toopo/string/truncate.js', js],
+  ['js', 'mjs', 'toopo', 'toopo/string/truncate.mjs', js],
+])(
+  'the %s emission lands as .%s in %s, is locked, and imports ./%s',
+  async (emission, extension, folder, specifier, text) => {
+    const files = { 'toopo.json': config(emission, folder, extension) }
+    const run = await add(['string/truncate'], registry(), files)
+    expect(run.stderr).toBe('')
+    expect(run.status).toBe(0)
+    const file = `${folder}/string/truncate.${extension}`
+    expect(run.read(file)).toBe(text)
+    expect(run.read('toopo.lock')).toBe(
+      lock({ [t]: { version: '1.0.0', sha256: hash('sha256', text) } }),
+    )
+    expect(run.stdout).toBe(printed(file, 'truncate', specifier))
+  },
+)
+
+test('a kebab-case name imports in camelCase', async () => {
+  const address = 'js/string/snake-case'
+  const run = await add(['string/snake-case'], registry({ ...record, address }, `/${address}.json`))
   expect(run.status).toBe(0)
-  expect(run.read(`${folder}/string/truncate.${extension}`)).toBe(text)
-  expect(run.read('toopo.lock')).toBe(
-    lock({ [t]: { version: '1.0.0', sha256: hash('sha256', text) } }),
-  )
+  const file = 'toopo/string/snake-case.ts'
+  expect(run.stdout).toBe(printed(file, 'snakeCase', 'toopo/string/snake-case.js'))
 })
 
 test('an existing lock keeps its entries', async () => {
@@ -124,6 +141,7 @@ test.each<[string, string[], Files, string, Files?]>([
 ])('%s fails and writes nothing', async (_, args, served, stderr, files = ours) => {
   const run = await add(args, served, files)
   expect(run.stderr).toBe(`${stderr}\n`)
+  expect(run.stdout).toBe('')
   expect(run.status).toBe(1)
   expect(run.after).toEqual(run.before)
   expect(run.read(target)).toBe(files[target])
