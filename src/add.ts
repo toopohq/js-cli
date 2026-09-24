@@ -1,7 +1,7 @@
 import { hash } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
+import { basename, dirname, join, relative, sep } from 'node:path'
 import { parseArgs } from 'node:util'
 import type { ServedRecord } from '@toopo/spec/record'
 
@@ -47,4 +47,10 @@ export async function add(args: string[]): Promise<void> {
   await writeFile(file, bytes, { flag: 'wx' })
   const locked = { ...lock, [address]: { version: record.version, sha256: served.sha256 } }
   await writeFile('toopo.lock', `${JSON.stringify(locked, null, 2)}\n`)
+  // From beside `folder`; `tsc` refuses a `.ts` specifier (TS5097), so `.ts` imports as `.js`.
+  const from = relative(dirname(folder), file)
+    .replaceAll(sep, '/')
+    .replace(/\.(m?)ts$/, '.$1js')
+  const exported = basename(name).replace(/-(.)/g, (_, letter: string) => letter.toUpperCase())
+  process.stdout.write(`${file}\nimport { ${exported} } from './${from}'\n`)
 }

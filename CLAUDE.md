@@ -9,7 +9,7 @@ JavaScript catalogue, `toopohq/js`, into their project.
   builds on `prepack`. With no command it knows, it prints the usage to stderr and exits 1.
 - `src/init.ts` — `toopo init`: detects TypeScript or JavaScript, asks, writes `toopo.json`.
 - `src/add.ts` — `toopo add`: fetches a record, verifies the digest, writes the file and
-  `toopo.lock`.
+  `toopo.lock`, prints the file and its import.
 - `src/*.test.ts` — run `main.ts` in a child Node process; `add` against a local registry,
   `TOOPO_REGISTRY`.
 - `.claude/hook.mjs` — fast feedback for Claude Code, not enforcement: it sees Write and Edit, and
