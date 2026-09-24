@@ -14,7 +14,7 @@ async function get(path: string): Promise<Response> {
 }
 
 export function read(file: string) {
-  const text = readFileSync(file, 'utf8')
+  const text = readFileSync(file, 'utf8').replace(/^\uFEFF/, '')
   try {
     return JSON.parse(text)
   } catch {

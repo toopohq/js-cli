@@ -22,6 +22,8 @@ function init(files: File[], args: string[], input: string) {
 }
 
 const esm: File = ['package.json', '{ "type": "module" }\n']
+const cjs: File = ['package.json', '{ "type": "commonjs" }\n']
+const bom: File = ['package.json', '\uFEFF{ "type": "module" }\n']
 
 test.each<[string, File[], string[], string, string, string, string]>([
   ['a tsconfig.json, the detection accepted', ['tsconfig.json'], [], '\n', 'ts', 'ts', 'toopo'],
@@ -34,6 +36,8 @@ test.each<[string, File[], string[], string, string, string, string]>([
   ['a src file, not a folder', ['src'], ['--ts'], '', 'ts', 'ts', 'toopo'],
   ['a package.json with no type', ['package.json'], ['--js'], '', 'js', 'mjs', 'toopo'],
   ['a package.json of type module', [esm], ['--js'], '', 'js', 'js', 'toopo'],
+  ['a package.json of type commonjs', [cjs], ['--js'], '', 'js', 'mjs', 'toopo'],
+  ['a package.json behind a BOM', [bom], ['--js'], '', 'js', 'js', 'toopo'],
 ])('%s writes toopo.json', (_, files, args, input, emission, extension, folder) => {
   const run = init(files, args, input)
   expect(run.status).toBe(0)
