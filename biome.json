@@ -1,0 +1,16 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "formatter": { "indentStyle": "space", "lineWidth": 100 },
+  "javascript": { "formatter": { "quoteStyle": "single", "semicolons": "asNeeded" } },
+  "linter": {
+    "rules": {
+      "complexity": {
+        "noExcessiveLinesPerFunction": { "level": "error", "options": { "maxLines": 40 } }
+      },
+      "style": {
+        "noExcessiveLinesPerFile": { "level": "error", "options": { "maxLines": 150 } }
+      }
+    }
+  }
+}

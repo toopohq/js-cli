@@ -1,0 +1,24 @@
+{
+  "name": "toopo",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.5.1",
+  "bin": {
+    "toopo": "./src/main.ts"
+  },
+  "scripts": {
+    "check": "biome ci --error-on-warnings && tsc && vitest run && knip"
+  },
+  "knip": {
+    "entry": [
+      ".claude/hook.mjs"
+    ]
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.14",
+    "@types/node": "22.20.4",
+    "knip": "6.37.0",
+    "typescript": "7.0.2",
+    "vitest": "5.0.1"
+  }
+}

@@ -1,0 +1,44 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - name: No runtime dependencies
+        if: ${{ !cancelled() }}
+        run: jq -e 'has("dependencies") | not' package.json
+      - name: Title, sign-off, no assistant attribution
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+          BODY: ${{ github.event.pull_request.body }}
+          RANGE: ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}
+        run: |
+          grep -qE '^(feat|fix|perf|refactor|docs|test|build|ci|chore|revert)(\([a-z0-9./-]+\))?!?: \S' <<< "$TITLE" \
+            || { echo "::error::The title is not a Conventional Commit: $TITLE"; exit 1; }
+          for sha in $(git rev-list "$RANGE"); do
+            git log -1 --format=%B "$sha" | grep -q '^Signed-off-by: ' \
+              || { echo "::error::$sha has no Signed-off-by line"; exit 1; }
+          done
+          if { echo "$TITLE"; echo "$BODY"; git log --format=%B "$RANGE"; } | grep -E 'Co-[Aa]uthored-[Bb]y|Claude|Generated with'; then
+            echo "::error::Assistant attribution in the title, the body or a commit"; exit 1
+          fi
