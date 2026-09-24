@@ -5,12 +5,13 @@ import { parseArgs } from 'node:util'
 
 async function ask(detected: string): Promise<string> {
   const rl = createInterface({ input: process.stdin, output: process.stderr })
-  // question() never settles when stdin ends unanswered: the close event settles it instead.
-  const closed = new Promise<undefined>((resolve) => rl.once('close', resolve))
-  const answer = await Promise.race([rl.question(`Emission (ts/js) [${detected}]: `), closed])
+  rl.setPrompt(`Emission (ts/js) [${detected}]: `)
+  rl.prompt()
+  // Not question(): it drops a last line with no newline, and never settles when stdin ends.
+  const line = await rl[Symbol.asyncIterator]().next()
   rl.close()
-  if (answer === undefined) throw new Error('no answer: pass --ts or --js')
-  return answer.trim() || detected
+  if (line.done) throw new Error('no answer: pass --ts or --js')
+  return line.value.trim() || detected
 }
 
 export async function init(args: string[]): Promise<void> {

@@ -18,6 +18,7 @@ test.each([
   ['a tsconfig.json, the detection accepted', ['tsconfig.json'], [], '\n', 'ts'],
   ['no tsconfig.json, the detection accepted', [], [], '\n', 'js'],
   ['an answer against the detection', ['tsconfig.json'], [], 'js\n', 'js'],
+  ['an answer without a newline', [], [], 'ts', 'ts'],
   ['--ts, unasked', [], ['--ts'], '', 'ts'],
   ['--js, unasked', ['tsconfig.json'], ['--js'], '', 'js'],
 ])('%s writes the emission', (_, files, args, input, emission) => {
@@ -26,14 +27,16 @@ test.each([
   expect(run.config).toBe(`{\n  "emission": "${emission}"\n}\n`)
 })
 
+const prompt = 'Emission (ts/js) [js]: '
+
 test.each<[string, string[], string[], string, string]>([
   ['--ts with --js', [], ['--ts', '--js'], '', '--ts and --js exclude each other\n'],
-  ['an answer neither ts nor js', [], [], 'py\n', 'expected ts or js, got py\n'],
-  ['stdin closed unanswered', [], [], '', 'no answer: pass --ts or --js\n'],
+  ['an answer neither ts nor js', [], [], 'py\n', `${prompt}expected ts or js, got py\n`],
+  ['stdin closed unanswered', [], [], '', `${prompt}no answer: pass --ts or --js\n`],
   ['an existing toopo.json, before asking', ['toopo.json'], [], '', 'toopo.json already exists\n'],
-])('%s fails and writes nothing', (_, files, args, input, message) => {
+])('%s fails and writes nothing', (_, files, args, input, stderr) => {
   const run = init(files, args, input)
-  expect(run.stderr.endsWith(message)).toBe(true)
+  expect(run.stderr).toBe(stderr)
   expect(run.status).toBe(1)
   expect(run.config).toBe(files.includes('toopo.json') ? '{}\n' : undefined)
 })
