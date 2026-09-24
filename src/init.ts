@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs'
+import { existsSync, statSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
 import { createInterface } from 'node:readline/promises'
 import { parseArgs } from 'node:util'
@@ -24,7 +24,7 @@ export async function init(args: string[]): Promise<void> {
   const detected = existsSync('tsconfig.json') ? 'ts' : 'js'
   const emission = values.ts ? 'ts' : values.js ? 'js' : await ask(detected)
   if (emission !== 'ts' && emission !== 'js') throw new Error(`expected ts or js, got ${emission}`)
-  const folder = existsSync('src') ? 'src/toopo' : 'toopo'
+  const folder = statSync('src', { throwIfNoEntry: false })?.isDirectory() ? 'src/toopo' : 'toopo'
   await writeFile('toopo.json', `${JSON.stringify({ emission, folder }, null, 2)}\n`, {
     flag: 'wx',
   })

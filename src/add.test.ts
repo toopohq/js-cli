@@ -1,6 +1,14 @@
 import { execFile } from 'node:child_process'
 import { hash } from 'node:crypto'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { createServer } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { tmpdir } from 'node:os'
@@ -47,6 +55,8 @@ async function add(args: string[], served = registry(), files: Files = ours) {
     mkdirSync(dirname(join(cwd, file)), { recursive: true })
     writeFileSync(join(cwd, file), text)
   }
+  const tree = () => readdirSync(cwd, { recursive: true }).sort()
+  const before = tree()
   const { port } = server.address() as AddressInfo
   const env = { ...process.env, TOOPO_REGISTRY: `http://127.0.0.1:${port}` }
   const main = join(import.meta.dirname, 'main.ts')
@@ -59,7 +69,7 @@ async function add(args: string[], served = registry(), files: Files = ours) {
   )
   const read = (file: string) =>
     existsSync(join(cwd, file)) ? readFileSync(join(cwd, file), 'utf8') : undefined
-  return { ...run, read }
+  return { ...run, read, before, after: tree() }
 }
 
 test.each([
@@ -93,6 +103,8 @@ const tsOnly = variant({ emissions: { ts: record.emissions.ts } })
 const tampered = variant({ emissions: { ts: { ...record.emissions.ts, sha256: '0' } } })
 // Fetch resolves `js/../y.json` to `/y.json`, where this registry serves another record.
 const escaped = registry(record, '/y.json')
+const mine = { ...ours, [target]: 'mine\n' }
+const broken = { ...ours, 'toopo.lock': '{\n' }
 
 test.each<[string, string[], Files, string, Files?]>([
   ['no address', [], registry(), usage],
@@ -104,20 +116,13 @@ test.each<[string, string[], Files, string, Files?]>([
   ['a dependency', truncate, dependent, `${t}: dependencies are not supported yet`],
   ['no such emission', truncate, tsOnly, `${t}: no .js emission`, { 'toopo.json': config('js') }],
   ['a digest that differs', truncate, tampered, `${t}.ts: sha256 mismatch`],
-  [
-    'an existing file',
-    truncate,
-    registry(),
-    `${target} already exists, and it is yours`,
-    {
-      ...ours,
-      [target]: 'mine\n',
-    },
-  ],
+  ['an existing file', truncate, registry(), `${target} already exists, and it is yours`, mine],
+  ['a toopo.lock not JSON', truncate, registry(), 'toopo.lock is not valid JSON', broken],
 ])('%s fails and writes nothing', async (_, args, served, stderr, files = ours) => {
   const run = await add(args, served, files)
   expect(run.stderr).toBe(`${stderr}\n`)
   expect(run.status).toBe(1)
+  expect(run.after).toEqual(run.before)
   expect(run.read(target)).toBe(files[target])
-  expect(run.read('toopo.lock')).toBeUndefined()
+  expect(run.read('toopo.lock')).toBe(files['toopo.lock'])
 })

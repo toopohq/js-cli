@@ -14,7 +14,12 @@ async function get(path: string): Promise<Response> {
 }
 
 function read(file: string) {
-  return JSON.parse(readFileSync(file, 'utf8'))
+  const text = readFileSync(file, 'utf8')
+  try {
+    return JSON.parse(text)
+  } catch {
+    throw new Error(`${file} is not valid JSON`)
+  }
 }
 
 export async function add(args: string[]): Promise<void> {
@@ -24,6 +29,7 @@ export async function add(args: string[]): Promise<void> {
     throw new Error('usage: toopo add <domain>/<name>')
   if (!existsSync('toopo.json')) throw new Error('no toopo.json: run toopo init')
   const { emission, folder }: { emission: 'ts' | 'js'; folder: string } = read('toopo.json')
+  const lock = existsSync('toopo.lock') ? read('toopo.lock') : {}
   const file = join(folder, `${name}.${emission}`)
   if (existsSync(file)) throw new Error(`${file} already exists, and it is yours`)
   const address = `js/${name}`
@@ -38,7 +44,6 @@ export async function add(args: string[]): Promise<void> {
   if (hash('sha256', bytes) !== served.sha256) throw new Error(`${served.path}: sha256 mismatch`)
   await mkdir(dirname(file), { recursive: true })
   await writeFile(file, bytes, { flag: 'wx' })
-  const lock = existsSync('toopo.lock') ? read('toopo.lock') : {}
-  lock[address] = { version: record.version, sha256: served.sha256 }
-  await writeFile('toopo.lock', `${JSON.stringify(lock, null, 2)}\n`)
+  const locked = { ...lock, [address]: { version: record.version, sha256: served.sha256 } }
+  await writeFile('toopo.lock', `${JSON.stringify(locked, null, 2)}\n`)
 }

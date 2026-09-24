@@ -25,6 +25,7 @@ test.each([
   ['--ts, unasked', [], ['--ts'], '', 'ts', 'toopo'],
   ['--js, unasked', ['tsconfig.json'], ['--js'], '', 'js', 'toopo'],
   ['a src/ folder', ['tsconfig.json', 'src/'], ['--ts'], '', 'ts', 'src/toopo'],
+  ['a src file, not a folder', ['src'], ['--ts'], '', 'ts', 'toopo'],
 ])('%s writes the emission and the folder', (_, files, args, input, emission, folder) => {
   const run = init(files, args, input)
   expect(run.status).toBe(0)
