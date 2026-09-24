@@ -9,6 +9,6 @@ test.each([
   const run = spawnSync(process.execPath, [join(import.meta.dirname, 'main.ts'), ...args], {
     encoding: 'utf8',
   })
-  expect(run.stderr).toBe('usage: toopo <command>\n')
+  expect(run.stderr).toBe('usage: toopo init [--ts | --js]\n')
   expect(run.status).toBe(1)
 })
