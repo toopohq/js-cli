@@ -50,5 +50,10 @@ export async function add(args: string[]): Promise<void> {
   // From beside `folder`; `tsc` refuses a `.ts` specifier (TS5097), so `.ts` imports as `.js`.
   const from = posix.join(basename(folder), `${name}.${extension.replace('ts', 'js')}`)
   const exported = basename(name).replace(/-(.)/g, (_, letter: string) => letter.toUpperCase())
-  process.stdout.write(`${file}\nimport { ${exported} } from './${from}'\n`)
+  // `.mjs` is a CommonJS project's `.js` emission, and a `.js` file there cannot `import`.
+  const line =
+    extension === 'mjs'
+      ? `const { ${exported} } = require('./${from}')`
+      : `import { ${exported} } from './${from}'`
+  process.stdout.write(`${file}\n${line}\n`)
 }

@@ -24,4 +24,9 @@ TypeScript imports a `.ts` file as `.js`, as `tsc` requires without `allowImport
 
 The function is an ES module. In a CommonJS project, one whose `package.json` does not say
 `"type": "module"`, the JavaScript lands as `.mjs`, which Node loads as ESM, from `require` too
-since Node 22.12.
+since Node 22.12, and `add` prints the `require` line:
+
+```
+toopo/string/truncate.mjs
+const { truncate } = require('./toopo/string/truncate.mjs')
+```
