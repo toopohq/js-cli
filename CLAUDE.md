@@ -5,7 +5,8 @@ JavaScript catalogue, `toopohq/js`, into their project.
 
 ## Structure
 
-- `src/main.ts` — the `bin`. With no command it knows, it prints the usage to stderr and exits 1.
+- `src/main.ts` — the entry; `bin` is its emission, `dist/main.js`, which `tsconfig.build.json`
+  builds on `prepack`. With no command it knows, it prints the usage to stderr and exits 1.
 - `src/init.ts` — `toopo init`: detects TypeScript or JavaScript, asks, writes `toopo.json`.
 - `src/add.ts` — `toopo add`: fetches a record, verifies the digest, writes the file and
   `toopo.lock`.
@@ -20,8 +21,9 @@ JavaScript catalogue, `toopohq/js`, into their project.
 ## Commands
 
 - `pnpm install`
-- `pnpm check` — Biome (a warning fails), `tsc`, Vitest, knip. CI runs the same, plus the pull
-  request checks, which run even when `pnpm check` fails.
+- `pnpm check` — Biome (a warning fails), `tsc`, Vitest, knip. CI runs the same, plus the build,
+  whose imports must be relative or `node:`, and the pull request checks, which run even when
+  `pnpm check` fails.
 
 ## Non-negotiables
 

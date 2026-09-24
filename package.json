@@ -1,17 +1,31 @@
 {
   "name": "toopo",
-  "private": true,
+  "version": "0.1.0",
+  "description": "Copy a function of the Toopo catalogue into your project, as .ts or .js.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/toopohq/js-cli.git"
+  },
   "type": "module",
   "packageManager": "pnpm@12.5.1",
-  "bin": {
-    "toopo": "./src/main.ts"
+  "engines": {
+    "node": ">=22"
   },
+  "bin": {
+    "toopo": "dist/main.js"
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "check": "biome ci --error-on-warnings && tsc && vitest run && knip"
+    "check": "biome ci --error-on-warnings && tsc && vitest run && knip",
+    "prepack": "tsc -p tsconfig.build.json"
   },
   "knip": {
     "entry": [
-      ".claude/hook.mjs"
+      ".claude/hook.mjs",
+      "src/main.ts"
     ]
   },
   "devDependencies": {
