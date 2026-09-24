@@ -9,3 +9,6 @@ One line per decision, newest last.
 - 2026-09-24 — `@toopo/spec` joins the devDependencies with its first import: knip refuses a dependency nothing imports.
 - 2026-09-24 — No Stryker: mutation testing is the catalogue's, scoped to the files a user copies. The client is tested by Vitest.
 - 2026-09-24 — CI refuses `Co-Authored-By`, `Claude` and `Generated with` anywhere in a pull request's title, body or commits, a human co-author and a mention of the tool included: a false alarm costs a reworded message, a missed attribution is published for good.
+- 2026-09-24 — `toopo.json` holds `{ "emission": "ts" }` or `"js"`, and nothing else: the value is the key of the served record's `emissions`. A field joins with the command that reads it; `add` brings the destination folder.
+- 2026-09-24 — `init` detects TypeScript by a `tsconfig.json` in the working directory and asks, the detection as the default; `--ts` or `--js` skips the question. Known ceiling: it neither walks up to a project root nor reads `package.json`, and the answer corrects what the file misses. A stdin that closes unanswered fails and names the flags, where Node would leave the question pending and exit 13.
+- 2026-09-24 — `init` refuses an existing `toopo.json`, before asking: rewriting a user's configuration is the user's to do.
