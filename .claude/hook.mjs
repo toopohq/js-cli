@@ -17,6 +17,7 @@ const allowed = new Set([
   'package.json',
   'pnpm-lock.yaml',
   'README.md',
+  'tsconfig.build.json',
   'tsconfig.json',
 ])
 

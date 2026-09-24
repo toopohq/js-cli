@@ -26,6 +26,13 @@ jobs:
       - name: No runtime dependencies
         if: ${{ !cancelled() }}
         run: jq -e 'has("dependencies") or has("optionalDependencies") or has("peerDependencies") | not' package.json
+      - name: The packed client runs where no devDependency resolves
+        if: ${{ !cancelled() }}
+        run: |
+          pnpm pack --out "$RUNNER_TEMP/toopo.tgz"
+          cd "$RUNNER_TEMP"
+          tar xzf toopo.tgz
+          node "package/$(jq -r .bin.toopo package/package.json)" init --ts
       - name: Title, sign-off, no assistant attribution
         if: ${{ !cancelled() && github.event_name == 'pull_request' }}
         env:
