@@ -25,7 +25,7 @@ jobs:
       - run: pnpm check
       - name: No runtime dependencies
         if: ${{ !cancelled() }}
-        run: jq -e 'has("dependencies") | not' package.json
+        run: jq -e 'has("dependencies") or has("optionalDependencies") or has("peerDependencies") | not' package.json
       - name: Title, sign-off, no assistant attribution
         if: ${{ !cancelled() && github.event_name == 'pull_request' }}
         env:

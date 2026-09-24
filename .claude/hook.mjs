@@ -20,6 +20,8 @@ const allowed = new Set([
   'tsconfig.json',
 ])
 
+const runtime = ['dependencies', 'optionalDependencies', 'peerDependencies']
+
 const root = process.env.CLAUDE_PROJECT_DIR
 const { hook_event_name: event, tool_input: input } = JSON.parse(readFileSync(0, 'utf8'))
 const path = relative(root, input.file_path)
@@ -43,8 +45,10 @@ if (event === 'PreToolUse') {
   if (path === 'CLAUDE.md' && after(input).trimEnd().split('\n').length > 150) {
     stop('CLAUDE.md would pass 150 lines')
   }
-  if (path === 'package.json' && 'dependencies' in JSON.parse(after(input))) {
-    stop('The client has no runtime dependencies: package.json takes no dependencies field')
+  if (path === 'package.json') {
+    const manifest = JSON.parse(after(input))
+    const field = runtime.find((name) => name in manifest)
+    if (field) stop(`The client has no runtime dependencies: package.json takes no ${field} field`)
   }
 } else {
   const biome = join(root, 'node_modules/@biomejs/biome/bin/biome')
