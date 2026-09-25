@@ -1,6 +1,6 @@
 {
   "name": "toopo",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Copy a function of the Toopo catalogue into your project, as .ts or .js.",
   "license": "MIT",
   "repository": {

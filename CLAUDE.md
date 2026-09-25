@@ -16,6 +16,9 @@ JavaScript catalogue, `toopohq/js`, into their project.
   a shell bypasses it. Refuses a root entry outside its allowlist, a runtime dependency field in
   `package.json` — CI refuses that one too — and a `CLAUDE.md` past 150 lines; formats and lints
   every file written.
+- `.github/workflows/release.yml` — a signed tag `v<version>` on `main` packs the client, runs the
+  tarball on Linux, macOS and Windows, Node 22.13.0 and 24, then publishes it to npm with
+  provenance. A release is a pull request bumping `version`, then the owner's tag on its merge.
 - `DECISIONS.md` — one line per decision.
 
 ## Commands

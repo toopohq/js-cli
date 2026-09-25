@@ -1,0 +1,79 @@
+name: release
+
+on:
+  push:
+    tags: ['v*']
+  pull_request:
+    paths: [.github/workflows/release.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: The tag names this version, on main
+        if: github.ref_type == 'tag'
+        run: |
+          version=$(jq -r .version package.json)
+          [ "$GITHUB_REF_NAME" = "v$version" ] \
+            || { echo "::error::$GITHUB_REF_NAME does not name version $version"; exit 1; }
+          git merge-base --is-ancestor HEAD origin/main \
+            || { echo "::error::$GITHUB_REF_NAME is not on main"; exit 1; }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm pack --out toopo.tgz
+      - uses: actions/upload-artifact@v7
+        with:
+          name: toopo
+          path: toopo.tgz
+
+  run:
+    needs: pack
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node: [22.13.0, 24]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+      - uses: actions/download-artifact@v8
+        with:
+          name: toopo
+      - name: Installed by npm, the client adds a function that loads with no warning
+        run: |
+          mkdir app && cd app
+          npm init -y
+          npm install ../toopo.tgz
+          npx toopo init --js
+          { npx toopo add string/truncate | tail -n 1; echo 'if (typeof truncate !== "function") process.exit(1)'; } > check.cjs
+          out=$(node check.cjs 2>&1)
+          [ -z "$out" ] || { echo "::error::$out"; exit 1; }
+
+  publish:
+    needs: run
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v8
+        with:
+          name: toopo
+      - run: npm publish ./toopo.tgz
