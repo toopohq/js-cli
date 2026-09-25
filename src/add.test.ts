@@ -26,6 +26,7 @@ const record: ServedRecord = {
   address: t,
   version: '1.0.0',
   summary: 'Shortens a string to at most a given length.',
+  exports: ['truncate'],
   emissions: {
     ts: { path: `${t}.ts`, sha256: hash('sha256', ts) },
     js: { path: `${t}.js`, sha256: hash('sha256', js) },
@@ -96,14 +97,6 @@ test.each([
   },
 )
 
-test('a kebab-case name imports in camelCase', async () => {
-  const address = 'js/string/snake-case'
-  const run = await add(['string/snake-case'], registry({ ...record, address }, `/${address}.json`))
-  expect(run.status).toBe(0)
-  const file = 'toopo/string/snake-case.ts'
-  expect(run.stdout).toBe(printed(file, "import { snakeCase } from './toopo/string/snake-case.js'"))
-})
-
 test('an existing lock keeps its entries', async () => {
   const pad = { 'js/string/pad': { version: '2.0.0', sha256: '0' } }
   const run = await add(['string/truncate'], registry(), { ...ours, 'toopo.lock': lock(pad) })
@@ -118,12 +111,18 @@ const target = join('toopo', 'string', 'truncate.ts')
 const variant = (change: object) => registry({ ...record, ...change })
 const pad = variant({ address: 'js/string/pad' })
 const dependent = variant({ dependencies: ['js/string/pad'] })
-const tsOnly = variant({ emissions: { ts: record.emissions.ts } })
+const tsOnly = variant({ exports: ['A', 'B'], emissions: { ts: record.emissions.ts } })
 const tampered = variant({ emissions: { ts: { ...record.emissions.ts, sha256: '0' } } })
 // Fetch resolves `js/../y.json` to `/y.json`, where this registry serves another record.
 const escaped = registry(record, '/y.json')
 const mine = { ...ours, [target]: 'mine\n' }
 const broken = { ...ours, 'toopo.lock': '{\n' }
+const listed = `${t}: exports is not a list of identifiers`
+
+test('a record without js imports every export as a type', async () => {
+  const { stdout } = await add(truncate, tsOnly)
+  expect(stdout).toBe(printed(target, "import type { A, B } from './toopo/string/truncate.js'"))
+})
 
 test.each<[string, string[], Files, string, Files?]>([
   ['no address', [], registry(), usage],
@@ -133,6 +132,9 @@ test.each<[string, string[], Files, string, Files?]>([
   ['a .. segment', ['../y'], escaped, `js/../y: the registry served ${t}`],
   ['another address served', truncate, pad, `${t}: the registry served js/string/pad`],
   ['a dependency', truncate, dependent, `${t}: dependencies are not supported yet`],
+  ['no exports', truncate, variant({ exports: undefined }), listed],
+  ['an empty exports', truncate, variant({ exports: [] }), listed],
+  ['an export not an identifier', truncate, variant({ exports: ['a }; b'] }), listed],
   ['no such emission', truncate, tsOnly, `${t}: no .js emission`, { 'toopo.json': config('js') }],
   ['a digest that differs', truncate, tampered, `${t}.ts: sha256 mismatch`],
   ['an existing file', truncate, registry(), `${target} already exists, and it is yours`, mine],
