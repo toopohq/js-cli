@@ -4,7 +4,7 @@ on:
   push:
     tags: ['v*']
   pull_request:
-    paths: [.github/workflows/release.yml]
+    paths: [.github/workflows/release.yml, package.json]
 
 permissions:
   contents: read
@@ -20,7 +20,6 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 24
-          cache: pnpm
       - name: The tag names this version, on main
         if: github.ref_type == 'tag'
         run: |
@@ -59,14 +58,14 @@ jobs:
           npm init -y
           npm install ../toopo.tgz
           npx toopo init --js
-          { npx toopo add string/truncate | tail -n 1; echo 'if (typeof truncate !== "function") process.exit(1)'; } > check.cjs
-          out=$(node check.cjs 2>&1)
-          [ -z "$out" ] || { echo "::error::$out"; exit 1; }
+          { npx toopo add string/truncate | tail -n 1; echo 'if (typeof truncate !== "function") throw new TypeError("truncate is not a function")'; } > check.cjs
+          out=$(node check.cjs 2>&1) && [ -z "$out" ] || { echo "::error::$out"; exit 1; }
 
   publish:
     needs: run
     if: github.ref_type == 'tag'
     runs-on: ubuntu-latest
+    environment: npm
     permissions:
       id-token: write
     steps:
@@ -76,4 +75,4 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           name: toopo
-      - run: npm publish ./toopo.tgz
+      - run: npm publish --provenance ./toopo.tgz
