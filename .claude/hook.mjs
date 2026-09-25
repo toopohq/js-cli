@@ -1,7 +1,9 @@
 // Before a write, refuse what this repository forbids. After it, format and lint what it touched.
-import { spawnSync } from 'node:child_process'
+// With --all, refuse the same over every file git lists: `pnpm check` runs it, since a shell
+// bypasses the hook.
+import { execFileSync, spawnSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
-import { isAbsolute, join, relative, sep } from 'node:path'
+import { basename, isAbsolute, join, relative, sep } from 'node:path'
 
 const allowed = new Set([
   '.claude',
@@ -23,14 +25,36 @@ const allowed = new Set([
 
 const runtime = ['dependencies', 'optionalDependencies', 'peerDependencies']
 
-const root = process.env.CLAUDE_PROJECT_DIR
-const { hook_event_name: event, tool_input: input } = JSON.parse(readFileSync(0, 'utf8'))
-const path = relative(root, input.file_path)
-
 function stop(reason) {
   process.stderr.write(`${reason}\n`)
   process.exit(2)
 }
+
+function refuse(path, text) {
+  const top = path.split('/')[0]
+  if (!allowed.has(top)) stop(`${top} is not on the root allowlist in .claude/hook.mjs`)
+  if (basename(path) === 'CLAUDE.md' && text().trimEnd().split('\n').length > 150) {
+    stop(`${path} is over 150 lines`)
+  }
+  if (path === 'package.json') {
+    const manifest = JSON.parse(text())
+    const field = runtime.find((name) => name in manifest)
+    if (field) stop(`The client has no runtime dependencies: package.json takes no ${field} field`)
+  }
+}
+
+if (process.argv[2] === '--all') {
+  const args = ['ls-files', '-z', '--cached', '--others', '--exclude-standard']
+  const listed = execFileSync('git', args, { encoding: 'utf8', maxBuffer: Infinity })
+  for (const path of listed.split('\0').filter(existsSync)) {
+    refuse(path, () => readFileSync(path, 'utf8'))
+  }
+  process.exit(0)
+}
+
+const root = process.env.CLAUDE_PROJECT_DIR
+const { hook_event_name: event, tool_input: input } = JSON.parse(readFileSync(0, 'utf8'))
+const path = relative(root, input.file_path)
 
 function after({ content, old_string: old, new_string: next, replace_all: all }) {
   if (content !== undefined) return content
@@ -41,16 +65,7 @@ function after({ content, old_string: old, new_string: next, replace_all: all })
 if (isAbsolute(path) || path.startsWith(`..${sep}`)) process.exit(0)
 
 if (event === 'PreToolUse') {
-  const top = path.split(sep)[0]
-  if (!allowed.has(top)) stop(`${top} is not on the root allowlist in .claude/hook.mjs`)
-  if (path === 'CLAUDE.md' && after(input).trimEnd().split('\n').length > 150) {
-    stop('CLAUDE.md would pass 150 lines')
-  }
-  if (path === 'package.json') {
-    const manifest = JSON.parse(after(input))
-    const field = runtime.find((name) => name in manifest)
-    if (field) stop(`The client has no runtime dependencies: package.json takes no ${field} field`)
-  }
+  refuse(path.replaceAll(sep, '/'), () => after(input))
 } else {
   const biome = join(root, 'node_modules/@biomejs/biome/bin/biome')
   if (!existsSync(biome)) process.exit(0)
