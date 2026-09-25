@@ -8,8 +8,7 @@ import type { ServedRecord } from '@toopo/spec/record'
 const registry = process.env.TOOPO_REGISTRY ?? 'https://toopo.dev'
 
 // ECMAScript's IdentifierName; reserved words pass, and print a line that does not parse.
-const identifier = (name: string) =>
-  /^[\p{ID_Start}$_][\p{ID_Continue}$\p{Join_Control}]*$/u.test(name)
+const identifier = (name: string) => /^[\p{ID_Start}$_][\p{ID_Continue}$]*$/u.test(name)
 
 async function get(path: string): Promise<Response> {
   const response = await fetch(`${registry}/${path}`)

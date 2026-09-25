@@ -134,7 +134,7 @@ test.each<[string, string[], Files, string, Files?]>([
   ['a dependency', truncate, dependent, `${t}: dependencies are not supported yet`],
   ['no exports', truncate, variant({ exports: undefined }), listed],
   ['an empty exports', truncate, variant({ exports: [] }), listed],
-  ['an export not an identifier', truncate, variant({ exports: ['a }; b'] }), listed],
+  ['an export not an identifier', truncate, variant({ exports: ['a\n}; b'] }), listed],
   ['no such emission', truncate, tsOnly, `${t}: no .js emission`, { 'toopo.json': config('js') }],
   ['a digest that differs', truncate, tampered, `${t}.ts: sha256 mismatch`],
   ['an existing file', truncate, registry(), `${target} already exists, and it is yours`, mine],
