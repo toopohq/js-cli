@@ -171,7 +171,7 @@ importers:
         version: 2.5.14
       '@toopo/spec':
         specifier: github:toopohq/spec
-        version: https://codeload.github.com/toopohq/spec/tar.gz/2c06067173fed433e86b177439c8a54737138757
+        version: https://codeload.github.com/toopohq/spec/tar.gz/838abf3d11395817c784762f35467c8311c76f07
       '@types/node':
         specifier: 22.20.4
         version: 22.20.4
@@ -597,8 +597,8 @@ packages:
   '@rolldown/pluginutils@1.0.1':
     resolution: {integrity: sha512-2j9bGt5Jh8hj+vPtgzPtl72j0yRxHAyumoo6TNfAjsLB04UtpSvPbPcDcBMxz7n+9CYB0c1GxQFxYRg2jimqGw==}
 
-  '@toopo/spec@https://codeload.github.com/toopohq/spec/tar.gz/2c06067173fed433e86b177439c8a54737138757':
-    resolution: {gitHosted: true, integrity: sha512-HN2k7KWPXpld399IUH2EwPRN/W6wn2np9eD8UwQflZX1Z35tnFiQOTpVPOespQTk/F6b3MvqwtfEU+CbD+uRrQ==, tarball: https://codeload.github.com/toopohq/spec/tar.gz/2c06067173fed433e86b177439c8a54737138757}
+  '@toopo/spec@https://codeload.github.com/toopohq/spec/tar.gz/838abf3d11395817c784762f35467c8311c76f07':
+    resolution: {gitHosted: true, integrity: sha512-9lScDgJTZpmcRv/FXZfigHGZxbAA2T9Yzh8ctoa7Ez/fLMR6o0ZUZxF0QAsZOg5nln34l6hEazSw3GrHmqkCgA==, tarball: https://codeload.github.com/toopohq/spec/tar.gz/838abf3d11395817c784762f35467c8311c76f07}
 
   '@tybys/wasm-util@0.10.4':
     resolution: {integrity: sha512-W3c4gRigFS0T/Ma4qIYF3GDAc5AQdHb1yL5znJT1Zv1YaD9Kitx656wBjvr19qbiosmZT8lWDM5BEMynUqX65A==}
@@ -1305,7 +1305,7 @@ snapshots:
 
   '@rolldown/pluginutils@1.0.1': {}
 
-  '@toopo/spec@https://codeload.github.com/toopohq/spec/tar.gz/2c06067173fed433e86b177439c8a54737138757': {}
+  '@toopo/spec@https://codeload.github.com/toopohq/spec/tar.gz/838abf3d11395817c784762f35467c8311c76f07': {}
 
   '@tybys/wasm-util@0.10.4':
     dependencies:

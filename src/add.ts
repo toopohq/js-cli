@@ -7,6 +7,9 @@ import type { ServedRecord } from '@toopo/spec/record'
 
 const registry = process.env.TOOPO_REGISTRY ?? 'https://toopo.dev'
 
+// ECMAScript's IdentifierName; reserved words pass, and print a line that does not parse.
+const identifier = (name: string) => /^[\p{ID_Start}$_][\p{ID_Continue}$]*$/u.test(name)
+
 async function get(path: string): Promise<Response> {
   const response = await fetch(`${registry}/${path}`)
   if (!response.ok) throw new Error(`${path}: ${response.status} ${response.statusText}`)
@@ -39,6 +42,9 @@ export async function add(args: string[]): Promise<void> {
   if (record.address !== address)
     throw new Error(`${address}: the registry served ${record.address}`)
   if (record.dependencies.length) throw new Error(`${address}: dependencies are not supported yet`)
+  // Printed for the user to paste, so identifiers alone: the record comes from the network.
+  if (!Array.isArray(record.exports) || !record.exports.length || !record.exports.every(identifier))
+    throw new Error(`${address}: exports is not a list of identifiers`)
   const served = record.emissions[emission]
   if (!served) throw new Error(`${address}: no .${emission} emission`)
   const bytes = Buffer.from(await (await get(served.path)).arrayBuffer())
@@ -49,11 +55,12 @@ export async function add(args: string[]): Promise<void> {
   await writeFile('toopo.lock', `${JSON.stringify(locked, null, 2)}\n`)
   // From beside `folder`; `tsc` refuses a `.ts` specifier (TS5097), so `.ts` imports as `.js`.
   const from = posix.join(basename(folder), `${name}.${extension.replace('ts', 'js')}`)
-  const exported = basename(name).replace(/-(.)/g, (_, letter: string) => letter.toUpperCase())
-  // `.mjs` is a CommonJS project's `.js` emission, and a `.js` file there cannot `import`.
+  const names = `{ ${record.exports.join(', ')} }`
+  // `.mjs` is a CommonJS project's `.js` emission, and a `.js` file there cannot `import`. A
+  // record without `js` is type-only: `import type`, which `verbatimModuleSyntax` requires.
   const line =
     extension === 'mjs'
-      ? `const { ${exported} } = require('./${from}')`
-      : `import { ${exported} } from './${from}'`
+      ? `const ${names} = require('./${from}')`
+      : `import ${record.emissions.js ? '' : 'type '}${names} from './${from}'`
   process.stdout.write(`${file}\n${line}\n`)
 }
