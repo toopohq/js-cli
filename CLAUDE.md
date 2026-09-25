@@ -29,7 +29,7 @@ JavaScript catalogue, `toopohq/js`, into their project.
 
 - Zero runtime dependencies: `package.json` has no `dependencies`, `optionalDependencies` or
   `peerDependencies` field. The hook and CI refuse each.
-- The client runs on Node 22 and later: `@types/node` is pinned to 22 and `lib` to ES2024, so
+- The client runs on Node 22.12 and later: `@types/node` is pinned to 22 and `lib` to ES2024, so
   `tsc` refuses an API Node 22 does not have. The toolchain and CI run Node 24.
 - A source file is at most 150 lines, a function at most 40. Biome enforces both.
 - A pull request title is a Conventional Commit, every commit is signed off (DCO), and no title,

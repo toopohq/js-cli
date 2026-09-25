@@ -10,7 +10,7 @@ npx toopo add string/truncate
 ```
 
 `init` writes `toopo.json`; `add` writes the function and records its version and digest in
-`toopo.lock`. Node 22 or later.
+`toopo.lock`. Node 22.12 or later.
 
 `add` prints the file it wrote and the line that imports it from beside its folder, from `src/`
 when the folder is `src/toopo`:
