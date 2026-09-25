@@ -19,12 +19,11 @@
     "dist"
   ],
   "scripts": {
-    "check": "biome ci --error-on-warnings && tsc && vitest run && knip",
+    "check": "node .claude/hook.mjs --all && biome ci --error-on-warnings && tsc && vitest run && knip",
     "prepack": "tsc -p tsconfig.build.json"
   },
   "knip": {
     "entry": [
-      ".claude/hook.mjs",
       "src/main.ts"
     ]
   },

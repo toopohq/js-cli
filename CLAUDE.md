@@ -12,10 +12,9 @@ JavaScript catalogue, `toopohq/js`, into their project.
   `toopo.lock`, prints the file and its import.
 - `src/*.test.ts` — run `main.ts` in a child Node process; `add` against a local registry,
   `TOOPO_REGISTRY`.
-- `.claude/hook.mjs` — fast feedback for Claude Code, not enforcement: it sees Write and Edit, and
-  a shell bypasses it. Refuses a root entry outside its allowlist, a runtime dependency field in
-  `package.json` — CI refuses that one too — and a `CLAUDE.md` past 150 lines; formats and lints
-  every file written.
+- `.claude/hook.mjs` — refuses a root entry outside its allowlist, any `CLAUDE.md` past 150 lines
+  and a runtime dependency field; formats and lints every file written. It sees Write and Edit,
+  and a shell bypasses it, so `--all` refuses the same over every file git lists.
 - `.github/workflows/release.yml` — a tag `v<version>` on `main` packs the client, runs the tarball
   on Linux, macOS and Windows, Node 22.13.0 and 24, then publishes it to npm with provenance from
   the `npm` environment. A release is a pull request bumping `version`, which runs it short of
@@ -25,14 +24,14 @@ JavaScript catalogue, `toopohq/js`, into their project.
 ## Commands
 
 - `pnpm install`
-- `pnpm check` — Biome (a warning fails), `tsc`, Vitest, knip. CI runs the same, plus the packed
-  client, unpacked where no devDependency resolves and run, and the pull request checks, which
-  run even when `pnpm check` fails.
+- `pnpm check` — the hook's `--all`, Biome (a warning fails), `tsc`, Vitest, knip. CI runs the
+  same, plus the packed client, unpacked where no devDependency resolves and run, and the pull
+  request checks, which run even when `pnpm check` fails.
 
 ## Non-negotiables
 
 - Zero runtime dependencies: `package.json` has no `dependencies`, `optionalDependencies` or
-  `peerDependencies` field. The hook and CI refuse each.
+  `peerDependencies` field. `pnpm check` refuses each.
 - The client runs on Node 22.13 and later: `@types/node` is pinned to 22 and `lib` to ES2024, so
   `tsc` refuses an API Node 22 does not have. The toolchain and CI run Node 24.
 - A source file is at most 150 lines, a function at most 40. Biome enforces both.

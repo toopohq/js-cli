@@ -23,9 +23,6 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
-      - name: No runtime dependencies
-        if: ${{ !cancelled() }}
-        run: jq -e 'has("dependencies") or has("optionalDependencies") or has("peerDependencies") | not' package.json
       - name: The packed client runs where no devDependency resolves
         if: ${{ !cancelled() }}
         run: |
